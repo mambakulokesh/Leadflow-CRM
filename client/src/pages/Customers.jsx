@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Building2, Search, Edit2, Mail, Phone, CreditCard, Crown, Zap, Clock, X, UserCheck, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Building2, Search, Edit2, Mail, Phone, CreditCard, Crown, Zap, Clock, X, UserCheck, ToggleLeft, ToggleRight, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { Tooltip } from 'react-tooltip';
 import { getCustomers, updateCustomer } from '../api/axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -109,6 +110,27 @@ const Customers = () => {
         }
     };
 
+    const handleExport = async () => {
+        try {
+            const res = await getCustomers(1, 10000, search, activeTab);
+            const rows = res.data.data.map(c => ({
+                Name: c.name,
+                Email: c.email,
+                Phone: c.phone,
+                Plan: c.plan,
+                'Payment Status': c.paymentStatus,
+                Status: c.isActive ? 'Active' : 'Inactive',
+                'Created At': new Date(c.createdAt).toLocaleDateString(),
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Customers');
+            XLSX.writeFile(wb, `customers_export_${Date.now()}.xlsx`);
+        } catch (err) {
+            setFeedback({ type: 'error', title: 'Export Failed', message: 'Could not export customers. Please try again.' });
+        }
+    };
+
     const openModal = (customer) => {
         setEditingCustomer(customer);
         setFormData({ name: customer.name, email: customer.email, phone: customer.phone, plan: customer.plan, paymentStatus: customer.paymentStatus });
@@ -135,7 +157,8 @@ const Customers = () => {
                 ))}
             </div>
 
-            <div className="relative max-w-sm">
+            <div className="flex items-center gap-3">
+            <div className="relative max-w-sm flex-1">
                 <Search className="absolute left-4 top-3 text-slate-500" size={18} />
                 <input
                     type="text"
@@ -144,6 +167,14 @@ const Customers = () => {
                     onChange={(e) => handleSearch(e.target.value)}
                     className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-2.5 pl-12 pr-4 text-sm text-slate-200 outline-none focus:border-blue-500/50 transition-all"
                 />
+            </div>
+            <button
+                onClick={handleExport}
+                className="flex items-center gap-2 glass border border-white/10 hover:border-blue-500/30 text-slate-400 hover:text-blue-400 px-4 py-2.5 rounded-xl transition-all text-sm font-semibold"
+            >
+                <Download size={16} />
+                Export
+            </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
